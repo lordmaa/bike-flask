@@ -2,9 +2,9 @@
 
 [![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/lordmerchant)
 
-**Your rides. Your hardware. Your friends.**
+**Your rides. Your food. Your hardware. Your friends.**
 
-Self-hosted cycling analytics with no cloud, no subscription, and no one else touching your data. Run it solo on a Raspberry Pi or connect with friends directly — instance to instance, no central server involved.
+Self-hosted cycling analytics and nutrition tracking with no cloud, no subscription, and no one else touching your data. Run it solo on a Raspberry Pi or connect with friends directly — instance to instance, no central server involved.
 
 ## Why Headwind
 
@@ -127,6 +127,16 @@ The social layer that makes Headwind different. Each instance exposes a token-au
 - Deliberately blunt tone — told to say when a ride was poor, not to encourage
 - Auto-generated on webhook sync; manually triggered on older rides
 
+### Nutrition tracker (PWA)
+- Installable Progressive Web App — add to home screen on iOS/Android, works offline
+- **Barcode scanner** — point your phone camera at any food packaging, pulls macros from Open Food Facts instantly (no API key)
+- Text search across the Open Food Facts database as fallback
+- Log meals across Breakfast / Lunch / Dinner / Snacks with custom serving sizes
+- Daily calorie and macro targets (protein, carbs, fat) with ring charts showing progress
+- Water intake logging
+- Manual override to fix any incorrect Open Food Facts entries per barcode
+- Calorie data pushed to Home Assistant as an MQTT sensor alongside your ride stats
+
 ### GPS heatmap
 - Full-history heatmap with date range filter
 - HD export at 3440×1440 PNG
@@ -140,5 +150,6 @@ The social layer that makes Headwind different. Each instance exposes a token-au
 
 - **Backend** — Python / Flask, SQLite
 - **Frontend** — Vanilla JS, Chart.js 4.4, Leaflet 1.9
-- **Data sources** — Strava API, Open-Meteo, Garmin Connect
+- **Data sources** — Strava API, Open-Meteo, Garmin Connect, Open Food Facts
 - **Integrations** — Home Assistant via MQTT, ntfy.sh
+- **PWA** — Nutrition tracker installable on iOS/Android with barcode scanning

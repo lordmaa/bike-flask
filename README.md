@@ -1,5 +1,7 @@
 # Headwind
 
+[![Buy Me A Coffee](https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support-FFDD00?style=for-the-badge&logo=buy-me-a-coffee&logoColor=black)](https://buymeacoffee.com/lordmerchant)
+
 **Your rides. Your hardware. Your friends.**
 
 Self-hosted cycling analytics with no cloud, no subscription, and no one else touching your data. Run it solo on a Raspberry Pi or connect with friends directly — instance to instance, no central server involved.

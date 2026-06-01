@@ -6,6 +6,25 @@
 {% block content %}
 <div style="display:flex; flex-direction:column; gap:1.5rem;">
 
+  <!-- Support -->
+  <div class="card" style="border-left:3px solid #FFDD00;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap;">
+    <div style="flex:1;min-width:200px;">
+      <div style="font-weight:600;font-size:0.9375rem;margin-bottom:0.25rem;">Headwind is free and open source</div>
+      <div style="font-size:0.8125rem;color:var(--text-muted);">
+        If it's saving you cash on Strava/Wahoo subscriptions, a coffee is appreciated.
+        <a href="https://github.com/lordmaa/headwind" target="_blank"
+           style="color:var(--accent);">GitHub →</a>
+      </div>
+    </div>
+    <a href="https://buymeacoffee.com/lordmerchant" target="_blank"
+       style="display:inline-flex;align-items:center;gap:0.5rem;
+              background:#FFDD00;color:#000000;font-weight:700;font-size:0.875rem;
+              padding:0.5rem 1.1rem;border-radius:8px;text-decoration:none;
+              white-space:nowrap;flex-shrink:0;">
+      ☕ Buy me a coffee
+    </a>
+  </div>
+
   <!-- Login Details -->
   <form method="POST" action="/settings/password" class="card">
     <div class="card-title">Login Details</div>

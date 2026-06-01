@@ -89,7 +89,7 @@ def upload():
     def generate():
         while True:
             try:
-                item = event_queue.get(timeout=300)
+                item = event_queue.get(timeout=1200)  # 20-minute timeout for large exports
             except queue.Empty:
                 break
             if item is None:

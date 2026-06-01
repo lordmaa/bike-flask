@@ -217,7 +217,9 @@ def index():
         wx_temp_season.append(_season(mo))
         wx_temp_ids.append(r['id'])
 
-        wx_wind_x.append(round(float(r['weatherWindKph']), 1))
+        # Convert wind from kph to mph to match speed units
+        wind_mph = round(float(r['weatherWindKph'] or 0) * 0.621371, 1)
+        wx_wind_x.append(wind_mph)
         wx_wind_y.append(mph)
         wx_wind_rel.append(r['weatherWindRel'] or 'calm')
         wx_wind_ids.append(r['id'])

@@ -155,6 +155,9 @@ def parse_fit(data: bytes):
 
     s = session_msg or {}
     distance   = float(s.get('total_distance') or 0)
+    # FIT files from older devices (esp. walks/hikes) sometimes report distance in mm
+    if distance > 500000:  # > 500km is clearly wrong; divide by 1000
+        distance = distance / 1000
     moving_time = int(s.get('total_moving_time') or s.get('total_timer_time') or 0)
     elev_gain  = float(s.get('total_ascent') or 0)
     avg_hr     = s.get('avg_heart_rate')

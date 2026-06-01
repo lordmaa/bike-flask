@@ -260,6 +260,7 @@ def migrate_db():
         ('nutritionCarbGoal',    'INTEGER'),
         ('nutritionFatGoal',     'INTEGER'),
         ('nutritionWaterGoalMl', 'INTEGER DEFAULT 2500'),
+        ('nutritionBmrKcal',     'INTEGER'),
     ]:
         if col not in settings_cols:
             db.execute(f'ALTER TABLE Settings ADD COLUMN {col} {defn}')
@@ -310,6 +311,48 @@ def migrate_db():
             createdAt TEXT DEFAULT (datetime('now'))
         )
     ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS FoodOverride (
+            barcode     TEXT PRIMARY KEY,
+            name        TEXT NOT NULL,
+            brand       TEXT,
+            kcal100g    REAL,
+            protein100g REAL,
+            carbs100g   REAL,
+            fat100g     REAL,
+            servingG    REAL,
+            updatedAt   TEXT DEFAULT (datetime('now'))
+        )
+    ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS SavedMeal (
+            id        INTEGER PRIMARY KEY AUTOINCREMENT,
+            name      TEXT NOT NULL,
+            createdAt TEXT DEFAULT (datetime('now'))
+        )
+    ''')
+
+    db.execute('''
+        CREATE TABLE IF NOT EXISTS SavedMealItem (
+            id       INTEGER PRIMARY KEY AUTOINCREMENT,
+            mealId   INTEGER NOT NULL REFERENCES SavedMeal(id) ON DELETE CASCADE,
+            foodName TEXT NOT NULL,
+            calories REAL,
+            protein  REAL,
+            carbs    REAL,
+            fat      REAL,
+            servingG REAL,
+            barcode  TEXT
+        )
+    ''')
+
+    food_log_cols = {r[1] for r in db.execute('PRAGMA table_info(FoodLog)').fetchall()}
+    if 'mealType' not in food_log_cols:
+        db.execute("ALTER TABLE FoodLog ADD COLUMN mealType TEXT DEFAULT 'uncategorised'")
+    if 'source' not in food_log_cols:
+        db.execute("ALTER TABLE FoodLog ADD COLUMN source TEXT DEFAULT 'manual'")
 
     db.commit()
 

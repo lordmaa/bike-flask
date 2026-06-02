@@ -30,36 +30,66 @@ def _sample_checkpoints(polyline_json, n=CHECKPOINT_N):
     return [interior[min(i * step, len(interior) - 1)] for i in range(1, n + 1)]
 
 
-def match_segment(activity_streams_json, seg):
+def _match_by_polyline(latlng, times, seg, checkpoints, dist_m):
     """
-    Returns elapsed_secs (int) for the fastest valid effort on this segment,
-    or None if the activity never traverses it.
-
-    Finds every entry into the start-zone (outside→inside TOLERANCE_M
-    transition), tries each as a candidate start, then looks for the closest
-    approach to the end *after* that candidate.  Taking the minimum elapsed
-    time across all candidates means:
-      - Loop rides (up + back down past start) are handled correctly
-      - Direction is enforced (end must follow start in the GPS stream)
-      - Multiple laps of the same segment return the fastest lap
+    Match segment using polyline checkpoints when available.
+    For each checkpoint, find all GPS points within CHECKPOINT_M.
+    Then find sequences where activity passes near checkpoints in order.
+    More robust than endpoint-matching when segment endpoints are positioned
+    mid-ride or GPS drifts significantly.
     """
-    try:
-        streams = json.loads(activity_streams_json or '{}')
-    except Exception:
-        return None
-
-    latlng = (streams.get('latlng') or {}).get('data') or []
-    times  = (streams.get('time')   or {}).get('data') or []
-
-    if not latlng or not times:
-        return None
-    n = min(len(latlng), len(times))
-    latlng = latlng[:n]
-    times  = times[:n]
-
-    dist_m      = seg['distanceM'] or 0
-    checkpoints = _sample_checkpoints(seg['polyline']) if seg['polyline'] else []
     best_elapsed = None
+    min_checkpoints_needed = max(2, int(len(checkpoints) * 0.7))
+
+    # Pre-compute which GPS indices are near each checkpoint
+    # This avoids repeated haversine calculations
+    checkpoint_hits = []
+    for cp_lat, cp_lng in checkpoints:
+        hits = []
+        for j, (lat, lng) in enumerate(latlng):
+            if _haversine(lat, lng, cp_lat, cp_lng) < CHECKPOINT_M:
+                hits.append(j)
+        checkpoint_hits.append(hits)
+
+    # Find sequences where we hit checkpoints in order
+    # Start from each possible first checkpoint hit
+    if not checkpoint_hits[0]:
+        return None  # Can't even hit first checkpoint
+
+    for start_idx in checkpoint_hits[0]:
+        cp_cursor = start_idx
+        checkpoints_hit = 1
+
+        # Try to hit remaining checkpoints in sequence
+        for cp_hits in checkpoint_hits[1:]:
+            # Find next checkpoint hit after cp_cursor
+            next_hit = next((h for h in cp_hits if h > cp_cursor), None)
+            if next_hit is None:
+                break
+            cp_cursor = next_hit
+            checkpoints_hit += 1
+
+        # If we hit enough checkpoints, this is a valid match
+        if checkpoints_hit >= min_checkpoints_needed:
+            elapsed = times[cp_cursor] - times[start_idx]
+            if elapsed > 0:
+                # Accept any elapsed time; checkpoint order validation ensures legitimacy.
+                # Speed floors are not applied as walks/hikes are valid segment attempts.
+                if best_elapsed is None or elapsed < best_elapsed:
+                    best_elapsed = elapsed
+
+    return best_elapsed
+
+
+def _match_by_endpoints(latlng, times, seg, dist_m):
+    """
+    Match segment using start/end zone detection (legacy approach).
+    Finds every entry into the start-zone, tries each as a candidate start,
+    then looks for the closest approach to the end. Handles loop rides and
+    multi-lap segments correctly.
+    """
+    best_elapsed = None
+    checkpoints = _sample_checkpoints(seg['polyline']) if seg['polyline'] else []
 
     def _try_start(start_idx):
         nonlocal best_elapsed
@@ -82,8 +112,6 @@ def match_segment(activity_streams_json, seg):
         elapsed = times[end_idx] - times[start_idx]
         if elapsed <= 0:
             return
-        if dist_m and (dist_m / elapsed) < 2.0:
-            return  # slower than 4.5 mph — false match
         if dist_m:
             # Reject shortcut routes: actual GPS distance must be ≥70% of
             # stored segment distance so riders who take a shorter road between
@@ -138,6 +166,44 @@ def match_segment(activity_streams_json, seg):
         _try_start(zone_best_i)
 
     return best_elapsed
+
+
+def match_segment(activity_streams_json, seg):
+    """
+    Returns elapsed_secs (int) for the fastest valid effort on this segment,
+    or None if the activity never traverses it.
+
+    If segment has a polyline, prioritizes polyline-based matching: finds
+    the span where the activity passes through the most interior checkpoints
+    in sequence. This handles segments created mid-ride and GPS drift better.
+
+    Otherwise falls back to endpoint-zone matching: finds every entry into the
+    start-zone (outside→inside TOLERANCE_M transition), tries each as a
+    candidate start, then looks for the closest approach to the end.
+    """
+    try:
+        streams = json.loads(activity_streams_json or '{}')
+    except Exception:
+        return None
+
+    latlng = (streams.get('latlng') or {}).get('data') or []
+    times  = (streams.get('time')   or {}).get('data') or []
+
+    if not latlng or not times:
+        return None
+    n = min(len(latlng), len(times))
+    latlng = latlng[:n]
+    times  = times[:n]
+
+    dist_m      = seg['distanceM'] or 0
+    checkpoints = _sample_checkpoints(seg['polyline']) if seg['polyline'] else []
+
+    # If segment has polyline, use polyline-primary matching (more robust)
+    if checkpoints:
+        return _match_by_polyline(latlng, times, seg, checkpoints, dist_m)
+
+    # Fall back to endpoint-zone matching for segments without polyline
+    return _match_by_endpoints(latlng, times, seg, dist_m)
 
 
 def _refresh_prs(db, segment_id):
@@ -203,11 +269,15 @@ def scan_all_activities(db, segment_ids=None):
     if not segments:
         return 0
 
+    # Set busy timeout to avoid lock contention with MQTT heartbeat
+    db.execute('PRAGMA busy_timeout = 10000')
+
     # Clear existing efforts for these segments so stale rows (e.g. from
     # previously looser matching) don't survive a rescan.
     seg_ids = [s['id'] for s in segments]
     placeholders = ','.join('?' * len(seg_ids))
     db.execute(f'DELETE FROM SegmentEffort WHERE segmentId IN ({placeholders})', seg_ids)
+    db.commit()
 
     activities = db.execute(
         "SELECT id, startDateLocal, streams FROM Activity "
@@ -216,6 +286,7 @@ def scan_all_activities(db, segment_ids=None):
 
     for act in activities:
         scan_activity_against_segments(db, act, segments)
+        db.commit()
 
     for seg in segments:
         _refresh_prs(db, seg['id'])

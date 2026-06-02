@@ -640,14 +640,14 @@ function resetSegmentMode() {
       if (_segState.endMarker) map.removeLayer(_segState.endMarker);
       if (_segState.segLine)   map.removeLayer(_segState.segLine);
 
+      var si = Math.min(_segState.startIdx, idx);
+      var ei = Math.max(_segState.startIdx, idx);
+
       var timeAtEnd = (window._rideTime && window._rideTime[ei] !== undefined) ? Math.round(window._rideTime[ei]) : null;
       var endLabel = timeAtEnd ? Math.round(timeAtEnd/60) + 'm in' : 'End';
       _segState.endMarker = L.circleMarker(coords[ei], {
         color:'#ef4444', fillColor:'#ef4444', fillOpacity:1, radius:10, weight:2
       }).addTo(map).bindPopup(endLabel).openPopup();
-
-      var si = Math.min(_segState.startIdx, idx);
-      var ei = Math.max(_segState.startIdx, idx);
       var segCoords = coords.slice(si, ei + 1);
 
       // Draw polyline with direction indication — thicker, animated gradient effect
@@ -673,9 +673,9 @@ function resetSegmentMode() {
             var bearing = Math.atan2(segCoords[i+1][1]-segCoords[i][1], segCoords[i+1][0]-segCoords[i][0]) * 180 / Math.PI;
             L.marker([arrowLat, arrowLng], {
               icon: L.divIcon({
-                html: '→', className: '',
-                iconSize: [20, 20],
-                html: '<span style="font-size:1.5rem; color:#00d4ff; transform:rotate(' + bearing + 'deg); display:inline-block;">→</span>'
+                html: '<span style="font-size:1.5rem; color:#00d4ff; transform:rotate(' + bearing + 'deg); display:inline-block;">→</span>',
+                className: '',
+                iconSize: [20, 20]
               })
             }).addTo(map);
             nextArrowAt += 500;

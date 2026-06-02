@@ -100,6 +100,8 @@ The social layer that makes Headwind different. Each instance exposes a token-au
 - Speed over time with rolling average, monthly distance, year-on-year comparison
 - Ride length distribution, rides by day of week, activity heatmap
 - Weather scatter charts — speed vs temperature, speed vs wind, speed by condition
+- **Activity type filtering** — all charts, heatmap, and dashboard stats filter by sport (rides, runs, walks, etc.)
+- **Measurement units** — display preferences toggle between Imperial (mi, mph, ft) and Metric (km, km/h, m)
 - Per-rider switcher throughout
 
 ### Trophy case

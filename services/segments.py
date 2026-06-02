@@ -200,10 +200,18 @@ def match_segment(activity_streams_json, seg):
 
     # If segment has polyline, use polyline-primary matching (more robust)
     if checkpoints:
-        return _match_by_polyline(latlng, times, seg, checkpoints, dist_m)
+        elapsed = _match_by_polyline(latlng, times, seg, checkpoints, dist_m)
+        # Reject unreliable measurements from coarse GPS granularity
+        # If elapsed < 5s, likely spans only 1-2 GPS samples; unreliable unless segment is tiny
+        if elapsed and elapsed < 5 and dist_m > 100:
+            return None
+        return elapsed
 
     # Fall back to endpoint-zone matching for segments without polyline
-    return _match_by_endpoints(latlng, times, seg, dist_m)
+    elapsed = _match_by_endpoints(latlng, times, seg, dist_m)
+    if elapsed and elapsed < 5 and dist_m > 100:
+        return None
+    return elapsed
 
 
 def _refresh_prs(db, segment_id):

@@ -103,13 +103,6 @@ def dashboard():
 
     active_rider = query_db('SELECT * FROM Rider WHERE id=?', [rid], one=True) or owner
 
-    totals = query_db(
-        'SELECT COUNT(*) as rides, SUM(distance) as dist, '
-        'SUM(totalElevationGain) as elev, SUM(movingTime) as secs, '
-        'SUM(calories) as cals FROM Activity WHERE riderId=?',
-        [rid], one=True,
-    )
-
     q         = request.args.get('q', '').strip()
     date_from = request.args.get('from', '').strip()
     date_to   = request.args.get('to', '').strip()
@@ -134,6 +127,14 @@ def dashboard():
         except ValueError: pass
     if sport:
         where.append('lower(a.sportType) LIKE ?'); params.append(f'%{sport.lower()}%')
+
+    totals = query_db(f'''
+        SELECT COUNT(*) as rides, SUM(a.distance) as dist,
+               SUM(a.totalElevationGain) as elev, SUM(a.movingTime) as secs,
+               SUM(a.calories) as cals
+        FROM Activity a
+        WHERE {' AND '.join(where)}
+    ''', params, one=True)
 
     activities = query_db(f'''
         SELECT a.id, a.name, a.sportType, a.startDateLocal, a.distance, a.movingTime,

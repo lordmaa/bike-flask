@@ -261,6 +261,8 @@ def migrate_db():
         ('nutritionFatGoal',     'INTEGER'),
         ('nutritionWaterGoalMl', 'INTEGER DEFAULT 2500'),
         ('nutritionBmrKcal',     'INTEGER'),
+        ('units',                "TEXT DEFAULT 'imperial'"),
+        ('distanceBackfillDone', 'INTEGER DEFAULT 0'),
     ]:
         if col not in settings_cols:
             db.execute(f'ALTER TABLE Settings ADD COLUMN {col} {defn}')
@@ -355,6 +357,19 @@ def migrate_db():
         db.execute("ALTER TABLE FoodLog ADD COLUMN source TEXT DEFAULT 'manual'")
 
     db.commit()
+
+    # ── Backfill corrupted distance data (mm vs m) ──────────────────
+    settings = db.execute("SELECT distanceBackfillDone FROM Settings WHERE id=1").fetchone()
+    if not settings or not settings[0]:
+        db.execute("""
+            UPDATE Activity SET distance = distance / 1000
+            WHERE distance > 500000
+              AND (lower(sportType) LIKE '%walk%'
+                OR lower(sportType) LIKE '%hike%'
+                OR lower(sportType) LIKE '%run%')
+        """)
+        db.execute("UPDATE Settings SET distanceBackfillDone=1 WHERE id=1")
+        db.commit()
 
 
 def get_db():

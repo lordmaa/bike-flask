@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from flask import Blueprint, jsonify, render_template, request
+from flask import Blueprint, g, jsonify, render_template, request
 
 from database import get_db, query_db
 from services.best_efforts import BRACKETS_MI, scan_all_best_efforts
@@ -23,11 +23,22 @@ def index():
         rid = owner['id'] if owner else None
     active_rider = query_db('SELECT * FROM Rider WHERE id=?', [rid], one=True) or owner
 
-    # ── Speed over time ──────────────────────────────────────────
-    speed_rows = query_db(
-        "SELECT date(startDateLocal) as d, averageSpeed "
-        "FROM Activity WHERE riderId=? AND averageSpeed > 0 ORDER BY startDateLocal",
+    sport = request.args.get('sport', '').strip()
+    sport_types = query_db(
+        'SELECT DISTINCT sportType FROM Activity WHERE riderId=? AND sportType IS NOT NULL ORDER BY sportType',
         [rid]
+    )
+
+    # ── Speed over time ──────────────────────────────────────────
+    where_clause = "WHERE riderId=? AND averageSpeed > 0"
+    where_params = [rid]
+    if sport:
+        where_clause += " AND lower(sportType) LIKE ?"
+        where_params.append(f'%{sport.lower()}%')
+    speed_rows = query_db(
+        f"SELECT date(startDateLocal) as d, averageSpeed "
+        f"FROM Activity {where_clause} ORDER BY startDateLocal",
+        where_params
     )
     speed_labels  = [r['d'] for r in speed_rows]
     speed_values  = [round(float(r['averageSpeed']) * 2.23694, 1) for r in speed_rows]
@@ -38,20 +49,30 @@ def index():
         speed_rolling.append(round(sum(chunk) / len(chunk), 2))
 
     # ── Monthly distance ─────────────────────────────────────────
+    monthly_where = "WHERE riderId=?"
+    monthly_params = [rid]
+    if sport:
+        monthly_where += " AND lower(sportType) LIKE ?"
+        monthly_params.append(f'%{sport.lower()}%')
     monthly_rows = query_db(
-        "SELECT strftime('%Y-%m', startDateLocal) as ym, SUM(distance) as dist "
-        "FROM Activity WHERE riderId=? GROUP BY ym ORDER BY ym",
-        [rid]
+        f"SELECT strftime('%Y-%m', startDateLocal) as ym, SUM(distance) as dist "
+        f"FROM Activity {monthly_where} GROUP BY ym ORDER BY ym",
+        monthly_params
     )
     monthly_labels = [r['ym'] for r in monthly_rows]
     monthly_values = [round((r['dist'] or 0) / 1609.344, 1) for r in monthly_rows]
 
     # ── Year-on-year ─────────────────────────────────────────────
+    yoy_where = "WHERE riderId=?"
+    yoy_params = [rid]
+    if sport:
+        yoy_where += " AND lower(sportType) LIKE ?"
+        yoy_params.append(f'%{sport.lower()}%')
     yoy_rows = query_db(
-        "SELECT strftime('%Y', startDateLocal) as yr, "
-        "CAST(strftime('%m', startDateLocal) AS INTEGER) as mo, "
-        "SUM(distance) as dist FROM Activity WHERE riderId=? GROUP BY yr, mo ORDER BY yr, mo",
-        [rid]
+        f"SELECT strftime('%Y', startDateLocal) as yr, "
+        f"CAST(strftime('%m', startDateLocal) AS INTEGER) as mo, "
+        f"SUM(distance) as dist FROM Activity {yoy_where} GROUP BY yr, mo ORDER BY yr, mo",
+        yoy_params
     )
     year_data = defaultdict(lambda: [0] * 12)
     for r in yoy_rows:
@@ -69,28 +90,43 @@ def index():
     ]
     hist_labels, hist_values = [], []
     for label, lo, hi in hist_buckets:
+        hist_where = "WHERE riderId=? AND distance >= ? AND distance < ?"
+        hist_params = [rid, lo, hi]
+        if sport:
+            hist_where += " AND lower(sportType) LIKE ?"
+            hist_params.append(f'%{sport.lower()}%')
         n = query_db(
-            "SELECT COUNT(*) as n FROM Activity WHERE riderId=? AND distance >= ? AND distance < ?",
-            [rid, lo, hi], one=True
+            f"SELECT COUNT(*) as n FROM Activity {hist_where}",
+            hist_params, one=True
         )['n']
         hist_labels.append(label)
         hist_values.append(n)
 
     # ── Day of week ───────────────────────────────────────────────
+    dow_where = "WHERE riderId=?"
+    dow_params = [rid]
+    if sport:
+        dow_where += " AND lower(sportType) LIKE ?"
+        dow_params.append(f'%{sport.lower()}%')
     dow_rows = query_db(
-        "SELECT CAST(strftime('%w', startDateLocal) AS INTEGER) as dow, COUNT(*) as n "
-        "FROM Activity WHERE riderId=? GROUP BY dow",
-        [rid]
+        f"SELECT CAST(strftime('%w', startDateLocal) AS INTEGER) as dow, COUNT(*) as n "
+        f"FROM Activity {dow_where} GROUP BY dow",
+        dow_params
     )
     dow_map    = {r['dow']: r['n'] for r in dow_rows}
     dow_labels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
     dow_values = [dow_map.get(i, 0) for i in range(7)]
 
     # ── Calories over time ────────────────────────────────────────
+    cal_where = "WHERE riderId=? AND calories > 0"
+    cal_params = [rid]
+    if sport:
+        cal_where += " AND lower(sportType) LIKE ?"
+        cal_params.append(f'%{sport.lower()}%')
     cal_rows = query_db(
-        "SELECT date(startDateLocal) as d, calories "
-        "FROM Activity WHERE riderId=? AND calories > 0 ORDER BY startDateLocal",
-        [rid]
+        f"SELECT date(startDateLocal) as d, calories "
+        f"FROM Activity {cal_where} ORDER BY startDateLocal",
+        cal_params
     )
     cal_labels = [r['d'] for r in cal_rows]
     cal_values = [int(r['calories']) for r in cal_rows]
@@ -101,10 +137,15 @@ def index():
         cal_rolling.append(round(sum(chunk) / len(chunk), 1))
 
     # ── Heatmap (all dates with distance) ────────────────────────
+    hm_where = "WHERE riderId=?"
+    hm_params = [rid]
+    if sport:
+        hm_where += " AND lower(sportType) LIKE ?"
+        hm_params.append(f'%{sport.lower()}%')
     heatmap_rows = query_db(
-        "SELECT date(startDateLocal) as d, SUM(distance) as dist "
-        "FROM Activity WHERE riderId=? GROUP BY d",
-        [rid]
+        f"SELECT date(startDateLocal) as d, SUM(distance) as dist "
+        f"FROM Activity {hm_where} GROUP BY d",
+        hm_params
     )
     heatmap = {r['d']: round((r['dist'] or 0) / 1609.344, 1) for r in heatmap_rows}
 
@@ -177,14 +218,18 @@ def index():
     climbing_by_month = {ym: {str(b): v for b, v in bmap.items() if v} for ym, bmap in climbing_by_month.items()}
 
     # ── Weather performance ───────────────────────────────────────
+    wx_where = "WHERE riderId=? AND averageSpeed > 0 AND weatherTempC IS NOT NULL AND weatherWindKph IS NOT NULL"
+    wx_params = [rid]
+    if sport:
+        wx_where += " AND lower(sportType) LIKE ?"
+        wx_params.append(f'%{sport.lower()}%')
     weather_scatter = query_db(
-        '''SELECT id, averageSpeed, weatherTempC, weatherWindKph, weatherWindRel, weatherCode,
+        f'''SELECT id, averageSpeed, weatherTempC, weatherWindKph, weatherWindRel, weatherCode,
                   strftime('%m', startDateLocal) as mo
            FROM Activity
-           WHERE riderId=? AND averageSpeed > 0
-             AND weatherTempC IS NOT NULL AND weatherWindKph IS NOT NULL
+           {wx_where}
            ORDER BY startDateLocal''',
-        [rid]
+        wx_params
     )
 
     wx_temp_x, wx_temp_y, wx_temp_season, wx_temp_ids = [], [], [], []
@@ -268,6 +313,8 @@ def index():
         wx_cond_counts=wx_cond_counts,
         all_riders=all_riders,
         active_rider=active_rider,
+        sport_types=sport_types,
+        sport=sport,
     )
 
 

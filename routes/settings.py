@@ -31,6 +31,9 @@ def index():
         openai_model = request.form.get('openaiModel', 'gpt-4o')
         ollama_url   = request.form.get('ollamaUrl', 'http://localhost:11434').strip()
         ollama_model = request.form.get('ollamaModel', 'llama3.2').strip()
+        units        = request.form.get('units', 'imperial')
+        if units not in ('imperial', 'metric'):
+            units = 'imperial'
 
         current      = query_db('SELECT * FROM Settings WHERE id=1', one=True)
         kept_key     = current['openaiKey']    if current else None
@@ -52,8 +55,8 @@ def index():
         db.execute('''
             INSERT INTO Settings (id, aiProvider, openaiKey, openaiModel, ollamaUrl, ollamaModel,
                                   mqttHost, mqttPort, mqttUser, mqttPassword,
-                                  garminEmail, garminPassword, garminSyncHours, garminSyncMode)
-            VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                                  garminEmail, garminPassword, garminSyncHours, garminSyncMode, units)
+            VALUES (1,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
             ON CONFLICT(id) DO UPDATE SET
                 aiProvider=excluded.aiProvider,
                 openaiKey=excluded.openaiKey,
@@ -67,7 +70,8 @@ def index():
                 garminEmail=excluded.garminEmail,
                 garminPassword=excluded.garminPassword,
                 garminSyncHours=excluded.garminSyncHours,
-                garminSyncMode=excluded.garminSyncMode
+                garminSyncMode=excluded.garminSyncMode,
+                units=excluded.units
         ''', [
             provider,
             openai_key if openai_key else kept_key,
@@ -82,6 +86,7 @@ def index():
             garmin_password if garmin_password else kept_garmin_pw,
             garmin_sync_hours,
             garmin_sync_mode,
+            units,
         ])
         db.commit()
         flash('Settings saved.', 'success')

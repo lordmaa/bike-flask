@@ -17,9 +17,13 @@ def index():
         "FROM Activity WHERE streams IS NOT NULL AND streams != ''",
         one=True
     )
+    sport_types = query_db(
+        'SELECT DISTINCT sportType FROM Activity WHERE sportType IS NOT NULL AND streams IS NOT NULL AND streams != "" ORDER BY sportType'
+    )
     return render_template('heatmap.html',
                            min_date=bounds['min_d'] or '',
-                           max_date=bounds['max_d'] or '')
+                           max_date=bounds['max_d'] or '',
+                           sport_types=sport_types)
 
 
 @bp.route('/heatmap/tile/<int:z>/<int:x>/<int:y>')
@@ -52,33 +56,24 @@ def tile_proxy(z, x, y):
 def data():
     from_date = request.args.get('from', '')
     to_date   = request.args.get('to', '')
+    sport     = request.args.get('sport', '').strip()
 
+    where = "WHERE streams IS NOT NULL AND streams != ''"
+    params = []
     if from_date and to_date:
-        rows = query_db(
-            "SELECT streams FROM Activity "
-            "WHERE streams IS NOT NULL AND streams != '' "
-            "AND date(startDateLocal) BETWEEN ? AND ?",
-            [from_date, to_date]
-        )
+        where += " AND date(startDateLocal) BETWEEN ? AND ?"
+        params.extend([from_date, to_date])
     elif from_date:
-        rows = query_db(
-            "SELECT streams FROM Activity "
-            "WHERE streams IS NOT NULL AND streams != '' "
-            "AND date(startDateLocal) >= ?",
-            [from_date]
-        )
+        where += " AND date(startDateLocal) >= ?"
+        params.append(from_date)
     elif to_date:
-        rows = query_db(
-            "SELECT streams FROM Activity "
-            "WHERE streams IS NOT NULL AND streams != '' "
-            "AND date(startDateLocal) <= ?",
-            [to_date]
-        )
-    else:
-        rows = query_db(
-            "SELECT streams FROM Activity "
-            "WHERE streams IS NOT NULL AND streams != ''"
-        )
+        where += " AND date(startDateLocal) <= ?"
+        params.append(to_date)
+    if sport:
+        where += " AND lower(sportType) LIKE ?"
+        params.append(f'%{sport.lower()}%')
+
+    rows = query_db(f"SELECT streams FROM Activity {where}", params)
 
     hd     = request.args.get('hd') == '1'
     sample = _SAMPLE_HD if hd else _SAMPLE

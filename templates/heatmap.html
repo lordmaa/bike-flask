@@ -73,6 +73,16 @@
              min="{{ min_date }}" max="{{ max_date }}"
              onchange="applyCustom()">
     </div>
+    <!-- Sport filter -->
+    <div class="overlay-row" style="gap: 0.25rem;">
+      <label style="font-size:0.75rem; color:var(--text-muted); width:100%; margin-bottom:0.25rem;">Sport</label>
+      <select id="sportFilter" onchange="applyCustom()" style="width:100%; box-sizing:border-box; background:#071525; color:var(--text); border:1px solid #1e4060; border-radius:5px; padding:0.35rem 0.6rem; font-size:0.875rem;">
+        <option value="">All Sports</option>
+        {% for st in sport_types %}
+        <option value="{{ st.sportType }}">{{ st.sportType }}</option>
+        {% endfor %}
+      </select>
+    </div>
     <!-- Map layer -->
     <div class="overlay-row">
       <button class="preset-btn active" id="layer-dark"     onclick="setLayer('dark',     this)">Dark</button>
@@ -146,6 +156,8 @@ function loadRange(from, to) {
   var params = new URLSearchParams();
   if (from) params.set('from', from);
   if (to)   params.set('to', to);
+  var sport = document.getElementById('sportFilter').value;
+  if (sport) params.set('sport', sport);
 
   fetch('/heatmap/data?' + params.toString())
     .then(r => r.json())

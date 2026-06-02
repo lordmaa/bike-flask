@@ -3,7 +3,7 @@ import os
 import threading
 import time
 from datetime import datetime, timedelta
-from flask import Flask, redirect, request, session, url_for
+from flask import Flask, g, redirect, request, session, url_for
 from werkzeug.middleware.proxy_fix import ProxyFix
 from config import Config
 from database import close_db, migrate_db
@@ -126,17 +126,33 @@ def create_app():
         migrate_db()
 
     # ── Template filters ─────────────────────────────────────────
+    def _get_units():
+        if not hasattr(g, 'units'):
+            from database import query_db
+            row = query_db('SELECT units FROM Settings WHERE id=1', one=True)
+            g.units = (row['units'] if row and row['units'] else 'imperial')
+        return g.units
+
     @app.template_filter('fmt_dist')
     def fmt_dist(m):
-        return f'{float(m or 0) / 1609.344:,.1f} mi'
+        v = float(m or 0)
+        if _get_units() == 'metric':
+            return f'{v/1000:,.1f} km'
+        return f'{v/1609.344:,.1f} mi'
 
     @app.template_filter('fmt_speed')
     def fmt_speed(mps):
-        return f'{float(mps or 0) * 2.23694:.1f} mph'
+        v = float(mps or 0)
+        if _get_units() == 'metric':
+            return f'{v*3.6:.1f} km/h'
+        return f'{v*2.23694:.1f} mph'
 
     @app.template_filter('fmt_elev')
     def fmt_elev(m):
-        return f'{round(float(m or 0) * 3.28084):,} ft'
+        v = float(m or 0)
+        if _get_units() == 'metric':
+            return f'{round(v):,} m'
+        return f'{round(v*3.28084):,} ft'
 
     @app.template_filter('fmt_duration')
     def fmt_duration(secs):
@@ -222,6 +238,10 @@ def create_app():
                 return redirect('/setup')
 
     app.permanent_session_lifetime = timedelta(days=30)
+
+    @app.context_processor
+    def inject_units():
+        return {'units': _get_units()}
 
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(auth_bp,     url_prefix='/auth')

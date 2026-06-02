@@ -25,6 +25,40 @@
     </a>
   </div>
 
+  <!-- Measurement Units -->
+  <form method="POST" class="card">
+    <div class="card-title">Display Preferences</div>
+    <div style="display:flex; align-items:center; gap:1.5rem;">
+      <div class="form-group" style="margin:0; flex:1;">
+        <label>Units</label>
+        <div style="display:flex; gap:0.5rem; margin-top:0.5rem;">
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:400;">
+            <input type="radio" name="units" value="imperial" {% if not s or s.units == 'imperial' %}checked{% endif %} style="cursor:pointer;">
+            Imperial (mi, mph, ft)
+          </label>
+          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer; font-weight:400;">
+            <input type="radio" name="units" value="metric" {% if s and s.units == 'metric' %}checked{% endif %} style="cursor:pointer;">
+            Metric (km, km/h, m)
+          </label>
+        </div>
+      </div>
+    </div>
+    <input type="hidden" name="aiProvider"        value="{{ s.aiProvider        if s else 'openai' }}">
+    <input type="hidden" name="openaiKey"         value="{{ s.openaiKey         if s and s.openaiKey         else '' }}">
+    <input type="hidden" name="openaiModel"       value="{{ s.openaiModel       if s and s.openaiModel       else 'gpt-4o' }}">
+    <input type="hidden" name="ollamaUrl"         value="{{ s.ollamaUrl         if s and s.ollamaUrl         else 'http://localhost:11434' }}">
+    <input type="hidden" name="ollamaModel"       value="{{ s.ollamaModel       if s and s.ollamaModel       else 'llama3.2' }}">
+    <input type="hidden" name="mqttHost"          value="{{ s.mqttHost          if s and s.mqttHost          else '' }}">
+    <input type="hidden" name="mqttPort"          value="{{ s.mqttPort          if s and s.mqttPort          else '1883' }}">
+    <input type="hidden" name="mqttUser"          value="{{ s.mqttUser          if s and s.mqttUser          else '' }}">
+    <input type="hidden" name="mqttPassword"      value="{{ s.mqttPassword      if s and s.mqttPassword      else '' }}">
+    <input type="hidden" name="garminEmail"       value="{{ s.garminEmail       if s and s.garminEmail       else '' }}">
+    <input type="hidden" name="garminPassword"    value="{{ s.garminPassword    if s and s.garminPassword    else '' }}">
+    <input type="hidden" name="garminSyncHours"   value="{{ s.garminSyncHours   if s and s.garminSyncHours   else 2 }}">
+    <input type="hidden" name="garminSyncMode"    value="{{ s.garminSyncMode    if s and s.garminSyncMode    else 'health' }}">
+    <button type="submit" class="btn btn-primary" style="margin-top:1.25rem;">Save Preferences</button>
+  </form>
+
   <!-- Login Details -->
   <form method="POST" action="/settings/password" class="card">
     <div class="card-title">Login Details</div>

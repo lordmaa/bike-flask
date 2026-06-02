@@ -52,7 +52,7 @@
 {% if all_riders | length > 1 %}
 <div style="display:flex; gap:0.5rem; margin-bottom:1.25rem; flex-wrap:wrap;">
   {% for r in all_riders %}
-  <a href="{{ url_for('data.index', rider=r.id) }}"
+  <a href="{{ url_for('data.index', rider=r.id, sport=sport) }}"
      style="display:inline-flex; align-items:center; gap:0.5rem; padding:0.4rem 0.75rem 0.4rem 0.4rem;
             border-radius:999px; border:1px solid {% if r.id == active_rider.id %}var(--accent){% else %}var(--border){% endif %};
             background:{% if r.id == active_rider.id %}rgba(252,76,2,0.12){% else %}var(--card-bg){% endif %};
@@ -67,6 +67,19 @@
   {% endfor %}
 </div>
 {% endif %}
+
+<div style="margin-bottom:1.25rem;">
+  <label style="font-size:0.75rem; color:var(--text-muted); display:block; margin-bottom:0.5rem;">Sport</label>
+  <form method="GET" action="/data" style="display:flex; gap:0.5rem;">
+    {% if not active_rider.isDefault %}<input type="hidden" name="rider" value="{{ active_rider.id }}">{% endif %}
+    <select name="sport" onchange="this.form.submit()" style="width:100%; max-width:200px; box-sizing:border-box; background:#0f2535; color:var(--text); border:1px solid var(--border); border-radius:5px; padding:0.35rem 0.6rem; font-size:0.875rem;">
+      <option value="">All Sports</option>
+      {% for st in sport_types %}
+      <option value="{{ st.sportType }}" {% if sport == st.sportType %}selected{% endif %}>{{ st.sportType }}</option>
+      {% endfor %}
+    </select>
+  </form>
+</div>
 
 <!-- Achievements -->
 <div class="card" style="margin-bottom:1.5rem; padding:0; overflow:hidden;">

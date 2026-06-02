@@ -640,14 +640,57 @@ function resetSegmentMode() {
       if (_segState.endMarker) map.removeLayer(_segState.endMarker);
       if (_segState.segLine)   map.removeLayer(_segState.segLine);
 
-      _segState.endMarker = L.circleMarker(pt, {
-        color:'#ef4444', fillColor:'#ef4444', fillOpacity:1, radius:8, weight:2
-      }).addTo(map).bindPopup('End').openPopup();
+      var timeAtEnd = (window._rideTime && window._rideTime[ei] !== undefined) ? Math.round(window._rideTime[ei]) : null;
+      var endLabel = timeAtEnd ? Math.round(timeAtEnd/60) + 'm in' : 'End';
+      _segState.endMarker = L.circleMarker(coords[ei], {
+        color:'#ef4444', fillColor:'#ef4444', fillOpacity:1, radius:10, weight:2
+      }).addTo(map).bindPopup(endLabel).openPopup();
 
       var si = Math.min(_segState.startIdx, idx);
       var ei = Math.max(_segState.startIdx, idx);
       var segCoords = coords.slice(si, ei + 1);
-      _segState.segLine = L.polyline(segCoords, { color:'#00d4ff', weight:5, opacity:0.85 }).addTo(map);
+
+      // Draw polyline with direction indication — thicker, animated gradient effect
+      _segState.segLine = L.polyline(segCoords, { color:'#00d4ff', weight:6, opacity:0.9 }).addTo(map);
+
+      // Add direction arrows every ~500m to show travel direction
+      if (segCoords.length > 2) {
+        var timeData = window._rideTime || [];
+        var distSoFar = 0;
+        var nextArrowAt = 500; // meters
+        for (var i = 0; i < segCoords.length - 1; i++) {
+          var R = 6371000;
+          var lat1 = segCoords[i][0]*Math.PI/180, lat2 = segCoords[i+1][0]*Math.PI/180;
+          var dlat = (segCoords[i+1][0]-segCoords[i][0])*Math.PI/180;
+          var dlng = (segCoords[i+1][1]-segCoords[i][1])*Math.PI/180;
+          var a = Math.sin(dlat/2)*Math.sin(dlat/2) + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dlng/2)*Math.sin(dlng/2);
+          var segLen = 2*R*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+          if (distSoFar + segLen >= nextArrowAt) {
+            var t = (nextArrowAt - distSoFar) / segLen;
+            var arrowLat = segCoords[i][0] + t*(segCoords[i+1][0]-segCoords[i][0]);
+            var arrowLng = segCoords[i][1] + t*(segCoords[i+1][1]-segCoords[i][1]);
+            var bearing = Math.atan2(segCoords[i+1][1]-segCoords[i][1], segCoords[i+1][0]-segCoords[i][0]) * 180 / Math.PI;
+            L.marker([arrowLat, arrowLng], {
+              icon: L.divIcon({
+                html: '→', className: '',
+                iconSize: [20, 20],
+                html: '<span style="font-size:1.5rem; color:#00d4ff; transform:rotate(' + bearing + 'deg); display:inline-block;">→</span>'
+              })
+            }).addTo(map);
+            nextArrowAt += 500;
+          }
+          distSoFar += segLen;
+        }
+      }
+
+      // Update start marker to show progress along ride
+      if (_segState.startMarker) map.removeLayer(_segState.startMarker);
+      var timeAtStart = (window._rideTime && window._rideTime[si] !== undefined) ? Math.round(window._rideTime[si]) : null;
+      var startLabel = timeAtStart ? Math.round(timeAtStart/60) + 'm in' : 'Start';
+      _segState.startMarker = L.circleMarker(coords[si], {
+        color:'#10b981', fillColor:'#10b981', fillOpacity:1, radius:10, weight:2
+      }).addTo(map).bindPopup(startLabel).openPopup();
 
       // Approximate distance (sum haversine along route slice)
       var dist = 0;

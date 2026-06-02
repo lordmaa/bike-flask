@@ -434,40 +434,44 @@
   <p style="color:var(--text-muted); font-size:0.875rem; margin:0 0 0.5rem;">No segment efforts on this ride yet.</p>
   {% endif %}
 
-  <!-- Segment creation panel -->
-  <div id="segPanel" style="display:none; margin-top:1rem; border-top:1px solid #1e4060; padding-top:1rem;">
+  <!-- Segment creation panel (overlay on map) -->
+  <div id="segPanel" style="display:none; position:absolute; top:1rem; left:1rem; z-index:1000;
+                           background:rgba(7,20,33,0.95); border:1px solid #1e4060; border-radius:8px;
+                           padding:1rem; backdrop-filter:blur(6px); max-width:420px;">
     <div id="segSliders" style="display:none;">
-      <p style="color:var(--accent); font-size:0.875rem; margin-bottom:1rem; font-weight:500;">Drag markers on map or use sliders</p>
+      <p style="color:var(--accent); font-size:0.875rem; margin:0 0 1rem; font-weight:500;">Drag markers on map or adjust sliders</p>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
-        <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:6px; padding:0.75rem;">
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">START</div>
-          <div style="font-size:1.25rem; font-weight:600; color:#10b981; margin-bottom:0.5rem;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+        <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:6px; padding:0.6rem;">
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">START</div>
+          <div style="font-size:1.1rem; font-weight:600; color:#10b981; margin-bottom:0.4rem;">
             <span id="segStartDist">0.0</span> mi
           </div>
-          <input type="range" id="segStartSlider" min="0" max="100" value="0" style="width:100%;" oninput="updateSegmentFromSliders()">
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;" id="segStartTime"></div>
+          <input type="range" id="segStartSlider" min="0" max="100" value="0" style="width:100%; height:4px;" oninput="updateSegmentFromSliders()">
+          <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.25rem;" id="segStartTime"></div>
         </div>
 
-        <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:6px; padding:0.75rem;">
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">SEGMENT</div>
-          <div style="font-size:1.25rem; font-weight:600; color:#3b82f6; margin-bottom:0.5rem;">
+        <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:6px; padding:0.6rem;">
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">SEGMENT</div>
+          <div style="font-size:1.1rem; font-weight:600; color:#3b82f6; margin-bottom:0.25rem;">
             <span id="segLength">0.0</span> mi
           </div>
-          <div style="font-size:0.85rem; color:var(--text-muted);">
+          <div style="font-size:0.8rem; color:var(--text-muted);">
             ↑ <span id="segElevation">0</span> ft
           </div>
         </div>
 
-        <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:6px; padding:0.75rem;">
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem;">END</div>
-          <div style="font-size:1.25rem; font-weight:600; color:#ef4444; margin-bottom:0.5rem;">
+        <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:6px; padding:0.6rem;">
+          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">END</div>
+          <div style="font-size:1.1rem; font-weight:600; color:#ef4444; margin-bottom:0.4rem;">
             <span id="segEndDist">0.0</span> mi
           </div>
-          <input type="range" id="segEndSlider" min="0" max="100" value="100" style="width:100%;" oninput="updateSegmentFromSliders()">
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-top:0.25rem;" id="segEndTime"></div>
+          <input type="range" id="segEndSlider" min="0" max="100" value="100" style="width:100%; height:4px;" oninput="updateSegmentFromSliders()">
+          <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.25rem;" id="segEndTime"></div>
         </div>
       </div>
+
+      <button type="button" class="btn btn-secondary" style="width:100%; font-size:0.8125rem;" onclick="showSegmentForm()">Confirm Segment →</button>
     </div>
 
     <div id="segForm" style="display:none;">
@@ -480,13 +484,13 @@
         <input type="hidden" name="distanceM"  id="segDistM">
         <input type="hidden" name="polyline"    id="segPolyline">
         <input type="hidden" name="elevGainM"  id="segElevGainM">
-        <div class="form-group" style="margin-bottom:0.75rem;">
-          <label>Segment name</label>
-          <input type="text" name="name" placeholder="e.g. Lumley Lane Climb" required autofocus>
+        <div class="form-group" style="margin:0 0 0.75rem;">
+          <label style="font-size:0.8125rem;">Segment name</label>
+          <input type="text" name="name" placeholder="e.g. Lumley Lane Climb" required autofocus style="font-size:0.875rem;">
         </div>
         <div style="display:flex; gap:0.5rem;">
-          <button type="submit" class="btn btn-primary">Save Segment &amp; Scan All Rides</button>
-          <button type="button" class="btn btn-secondary" onclick="cancelSegment()">Cancel</button>
+          <button type="submit" class="btn btn-primary" style="flex:1; font-size:0.8125rem;">Save Segment</button>
+          <button type="button" class="btn btn-secondary" style="font-size:0.8125rem;" onclick="cancelSegment()">Cancel</button>
         </div>
       </form>
     </div>
@@ -611,7 +615,14 @@ function enterSegmentMode() {
   _segState.endIdx = coords.length - 1;
   _segState.segLineGroup = L.featureGroup();
 
-  document.getElementById('segPanel').style.display = 'block';
+  var panel = document.getElementById('segPanel');
+  panel.style.display = 'block';
+  // Position relative to map container
+  var mapEl = document.getElementById('map');
+  if (mapEl && mapEl.parentElement) {
+    mapEl.parentElement.style.position = 'relative';
+    panel.parentElement.style.position = 'relative';
+  }
   document.getElementById('segSliders').style.display = 'block';
   document.getElementById('segForm').style.display = 'none';
 
@@ -624,6 +635,11 @@ function enterSegmentMode() {
   window._rideMap.addLayer(_segState.segLineGroup);
   window._rideMap.getContainer().style.cursor = 'default';
   document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function showSegmentForm() {
+  document.getElementById('segSliders').style.display = 'none';
+  document.getElementById('segForm').style.display = 'block';
 }
 
 function cancelSegment() {

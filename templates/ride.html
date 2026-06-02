@@ -320,6 +320,82 @@
 </div>
 {% endif %}
 
+<!-- Segment creation panel (directly below map/graphs) -->
+{% if coords %}
+<div id="segPanel" style="display:none; margin-bottom:1.5rem;">
+  <div id="segSliders" style="display:none; background:var(--card-bg); border:1px solid #1e4060; border-radius:10px; padding:1.25rem;">
+    <p style="color:var(--accent); font-size:0.875rem; margin:0 0 1.25rem; font-weight:500;">👈 Drag markers on map or fine-tune with arrows 👉</p>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+      <!-- START -->
+      <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:6px; padding:0.75rem;">
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">Start</div>
+        <div style="font-size:1.25rem; font-weight:600; color:#10b981; margin-bottom:0.5rem;">
+          <span id="segStartDist">0.0</span> mi
+        </div>
+        <input type="range" id="segStartSlider" min="0" max="100" value="0" style="width:100%; height:5px; margin-bottom:0.5rem;" oninput="updateSegmentFromSliders()">
+        <div style="display:flex; gap:0.3rem; justify-content:center; margin-bottom:0.5rem;">
+          <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegStart(-1)">← Back</button>
+          <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegStart(1)">Fwd →</button>
+        </div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-align:center;" id="segStartTime"></div>
+      </div>
+
+      <!-- SEGMENT -->
+      <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:6px; padding:0.75rem;">
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">Segment</div>
+        <div style="font-size:1.25rem; font-weight:600; color:#3b82f6; margin-bottom:0.25rem;">
+          <span id="segLength">0.0</span> mi
+        </div>
+        <div style="font-size:0.9rem; color:var(--text-muted); text-align:center;">
+          ↑ <span id="segElevation">0</span> ft
+        </div>
+      </div>
+
+      <!-- END -->
+      <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:6px; padding:0.75rem;">
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">End</div>
+        <div style="font-size:1.25rem; font-weight:600; color:#ef4444; margin-bottom:0.5rem;">
+          <span id="segEndDist">0.0</span> mi
+        </div>
+        <input type="range" id="segEndSlider" min="0" max="100" value="100" style="width:100%; height:5px; margin-bottom:0.5rem;" oninput="updateSegmentFromSliders()">
+        <div style="display:flex; gap:0.3rem; justify-content:center; margin-bottom:0.5rem;">
+          <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegEnd(-1)">← Back</button>
+          <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegEnd(1)">Fwd →</button>
+        </div>
+        <div style="font-size:0.7rem; color:var(--text-muted); text-align:center;" id="segEndTime"></div>
+      </div>
+    </div>
+
+    <div style="display:flex; gap:0.5rem;">
+      <button type="button" class="btn btn-primary" style="flex:1;" onclick="showSegmentForm()">Confirm Segment & Name It</button>
+      <button type="button" class="btn btn-secondary" style="flex:0.3;" onclick="cancelSegment()">✕</button>
+    </div>
+  </div>
+
+  <div id="segForm" style="display:none; background:var(--card-bg); border:1px solid #1e4060; border-radius:10px; padding:1.25rem;">
+    <form method="POST" action="{{ url_for('segments.create') }}">
+      <input type="hidden" name="activityId" value="{{ activity.id }}">
+      <input type="hidden" name="startLat"   id="segStartLat">
+      <input type="hidden" name="startLng"   id="segStartLng">
+      <input type="hidden" name="endLat"     id="segEndLat">
+      <input type="hidden" name="endLng"     id="segEndLng">
+      <input type="hidden" name="distanceM"  id="segDistM">
+      <input type="hidden" name="polyline"    id="segPolyline">
+      <input type="hidden" name="elevGainM"  id="segElevGainM">
+      <div class="form-group" style="margin:0 0 0.75rem;">
+        <label style="font-size:0.8125rem;">Segment name</label>
+        <input type="text" name="name" placeholder="e.g. Lumley Lane Climb" required autofocus style="font-size:0.875rem;">
+      </div>
+      <div style="display:flex; gap:0.5rem;">
+        <button type="submit" class="btn btn-primary" style="flex:1; font-size:0.8125rem;">Save Segment</button>
+        <button type="button" class="btn btn-secondary" style="font-size:0.8125rem;" onclick="cancelSegment()">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+
 <!-- Segments -->
 
 {% if coords %}
@@ -435,80 +511,6 @@
   {% endif %}
 
   <!-- Segment creation panel (below map) -->
-  <div id="segPanel" style="display:none; margin-top:1rem; border-top:1px solid #1e4060; padding-top:1rem;">
-    <div id="segSliders" style="display:none;">
-      <p style="color:var(--accent); font-size:0.875rem; margin:0 0 1.25rem; font-weight:500;">👈 Drag markers on map or fine-tune with arrows 👉</p>
-
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
-        <!-- START -->
-        <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:6px; padding:0.75rem;">
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">Start</div>
-          <div style="font-size:1.25rem; font-weight:600; color:#10b981; margin-bottom:0.5rem;">
-            <span id="segStartDist">0.0</span> mi
-          </div>
-          <input type="range" id="segStartSlider" min="0" max="100" value="0" style="width:100%; height:5px; margin-bottom:0.5rem;" oninput="updateSegmentFromSliders()">
-          <div style="display:flex; gap:0.3rem; justify-content:center; margin-bottom:0.5rem;">
-            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegStart(-1)">← Back</button>
-            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegStart(1)">Fwd →</button>
-          </div>
-          <div style="font-size:0.7rem; color:var(--text-muted); text-align:center;" id="segStartTime"></div>
-        </div>
-
-        <!-- SEGMENT -->
-        <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:6px; padding:0.75rem;">
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">Segment</div>
-          <div style="font-size:1.25rem; font-weight:600; color:#3b82f6; margin-bottom:0.25rem;">
-            <span id="segLength">0.0</span> mi
-          </div>
-          <div style="font-size:0.9rem; color:var(--text-muted); text-align:center;">
-            ↑ <span id="segElevation">0</span> ft
-          </div>
-        </div>
-
-        <!-- END -->
-        <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:6px; padding:0.75rem;">
-          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">End</div>
-          <div style="font-size:1.25rem; font-weight:600; color:#ef4444; margin-bottom:0.5rem;">
-            <span id="segEndDist">0.0</span> mi
-          </div>
-          <input type="range" id="segEndSlider" min="0" max="100" value="100" style="width:100%; height:5px; margin-bottom:0.5rem;" oninput="updateSegmentFromSliders()">
-          <div style="display:flex; gap:0.3rem; justify-content:center; margin-bottom:0.5rem;">
-            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegEnd(-1)">← Back</button>
-            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegEnd(1)">Fwd →</button>
-          </div>
-          <div style="font-size:0.7rem; color:var(--text-muted); text-align:center;" id="segEndTime"></div>
-        </div>
-      </div>
-
-      <div style="display:flex; gap:0.5rem;">
-        <button type="button" class="btn btn-primary" style="flex:1;" onclick="showSegmentForm()">Confirm Segment & Name It</button>
-        <button type="button" class="btn btn-secondary" style="flex:0.3;" onclick="cancelSegment()">✕</button>
-      </div>
-    </div>
-
-    <div id="segForm" style="display:none;">
-      <form method="POST" action="{{ url_for('segments.create') }}">
-        <input type="hidden" name="activityId" value="{{ activity.id }}">
-        <input type="hidden" name="startLat"   id="segStartLat">
-        <input type="hidden" name="startLng"   id="segStartLng">
-        <input type="hidden" name="endLat"     id="segEndLat">
-        <input type="hidden" name="endLng"     id="segEndLng">
-        <input type="hidden" name="distanceM"  id="segDistM">
-        <input type="hidden" name="polyline"    id="segPolyline">
-        <input type="hidden" name="elevGainM"  id="segElevGainM">
-        <div class="form-group" style="margin:0 0 0.75rem;">
-          <label style="font-size:0.8125rem;">Segment name</label>
-          <input type="text" name="name" placeholder="e.g. Lumley Lane Climb" required autofocus style="font-size:0.875rem;">
-        </div>
-        <div style="display:flex; gap:0.5rem;">
-          <button type="submit" class="btn btn-primary" style="flex:1; font-size:0.8125rem;">Save Segment</button>
-          <button type="button" class="btn btn-secondary" style="font-size:0.8125rem;" onclick="cancelSegment()">Cancel</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-{% endif %}
 
 <!-- Ride Notes -->
 <div class="card" style="margin-top:1rem;">

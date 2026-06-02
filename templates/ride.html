@@ -434,44 +434,56 @@
   <p style="color:var(--text-muted); font-size:0.875rem; margin:0 0 0.5rem;">No segment efforts on this ride yet.</p>
   {% endif %}
 
-  <!-- Segment creation panel (overlay on map) -->
-  <div id="segPanel" style="display:none; position:absolute; top:1rem; left:1rem; z-index:1000;
-                           background:rgba(7,20,33,0.95); border:1px solid #1e4060; border-radius:8px;
-                           padding:1rem; backdrop-filter:blur(6px); max-width:420px;">
+  <!-- Segment creation panel (below map) -->
+  <div id="segPanel" style="display:none; margin-top:1rem; border-top:1px solid #1e4060; padding-top:1rem;">
     <div id="segSliders" style="display:none;">
-      <p style="color:var(--accent); font-size:0.875rem; margin:0 0 1rem; font-weight:500;">Drag markers on map or adjust sliders</p>
+      <p style="color:var(--accent); font-size:0.875rem; margin:0 0 1.25rem; font-weight:500;">👈 Drag markers on map or fine-tune with arrows 👉</p>
 
-      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
-        <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:6px; padding:0.6rem;">
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">START</div>
-          <div style="font-size:1.1rem; font-weight:600; color:#10b981; margin-bottom:0.4rem;">
+      <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem; margin-bottom:1.5rem;">
+        <!-- START -->
+        <div style="background:rgba(16,185,129,0.1); border:1px solid #10b981; border-radius:6px; padding:0.75rem;">
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">Start</div>
+          <div style="font-size:1.25rem; font-weight:600; color:#10b981; margin-bottom:0.5rem;">
             <span id="segStartDist">0.0</span> mi
           </div>
-          <input type="range" id="segStartSlider" min="0" max="100" value="0" style="width:100%; height:4px;" oninput="updateSegmentFromSliders()">
-          <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.25rem;" id="segStartTime"></div>
+          <input type="range" id="segStartSlider" min="0" max="100" value="0" style="width:100%; height:5px; margin-bottom:0.5rem;" oninput="updateSegmentFromSliders()">
+          <div style="display:flex; gap:0.3rem; justify-content:center; margin-bottom:0.5rem;">
+            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegStart(-1)">← Back</button>
+            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegStart(1)">Fwd →</button>
+          </div>
+          <div style="font-size:0.7rem; color:var(--text-muted); text-align:center;" id="segStartTime"></div>
         </div>
 
-        <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:6px; padding:0.6rem;">
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">SEGMENT</div>
-          <div style="font-size:1.1rem; font-weight:600; color:#3b82f6; margin-bottom:0.25rem;">
+        <!-- SEGMENT -->
+        <div style="background:rgba(59,130,246,0.1); border:1px solid #3b82f6; border-radius:6px; padding:0.75rem;">
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">Segment</div>
+          <div style="font-size:1.25rem; font-weight:600; color:#3b82f6; margin-bottom:0.25rem;">
             <span id="segLength">0.0</span> mi
           </div>
-          <div style="font-size:0.8rem; color:var(--text-muted);">
+          <div style="font-size:0.9rem; color:var(--text-muted); text-align:center;">
             ↑ <span id="segElevation">0</span> ft
           </div>
         </div>
 
-        <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:6px; padding:0.6rem;">
-          <div style="font-size:0.7rem; color:var(--text-muted); margin-bottom:0.25rem;">END</div>
-          <div style="font-size:1.1rem; font-weight:600; color:#ef4444; margin-bottom:0.4rem;">
+        <!-- END -->
+        <div style="background:rgba(239,68,68,0.1); border:1px solid #ef4444; border-radius:6px; padding:0.75rem;">
+          <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.25rem; text-transform:uppercase; font-weight:600;">End</div>
+          <div style="font-size:1.25rem; font-weight:600; color:#ef4444; margin-bottom:0.5rem;">
             <span id="segEndDist">0.0</span> mi
           </div>
-          <input type="range" id="segEndSlider" min="0" max="100" value="100" style="width:100%; height:4px;" oninput="updateSegmentFromSliders()">
-          <div style="font-size:0.65rem; color:var(--text-muted); margin-top:0.25rem;" id="segEndTime"></div>
+          <input type="range" id="segEndSlider" min="0" max="100" value="100" style="width:100%; height:5px; margin-bottom:0.5rem;" oninput="updateSegmentFromSliders()">
+          <div style="display:flex; gap:0.3rem; justify-content:center; margin-bottom:0.5rem;">
+            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegEnd(-1)">← Back</button>
+            <button type="button" class="btn btn-secondary" style="padding:0.25rem 0.5rem; font-size:0.75rem; flex:1;" onclick="adjustSegEnd(1)">Fwd →</button>
+          </div>
+          <div style="font-size:0.7rem; color:var(--text-muted); text-align:center;" id="segEndTime"></div>
         </div>
       </div>
 
-      <button type="button" class="btn btn-secondary" style="width:100%; font-size:0.8125rem;" onclick="showSegmentForm()">Confirm Segment →</button>
+      <div style="display:flex; gap:0.5rem;">
+        <button type="button" class="btn btn-primary" style="flex:1;" onclick="showSegmentForm()">Confirm Segment & Name It</button>
+        <button type="button" class="btn btn-secondary" style="flex:0.3;" onclick="cancelSegment()">✕</button>
+      </div>
     </div>
 
     <div id="segForm" style="display:none;">
@@ -615,14 +627,7 @@ function enterSegmentMode() {
   _segState.endIdx = coords.length - 1;
   _segState.segLineGroup = L.featureGroup();
 
-  var panel = document.getElementById('segPanel');
-  panel.style.display = 'block';
-  // Position relative to map container
-  var mapEl = document.getElementById('map');
-  if (mapEl && mapEl.parentElement) {
-    mapEl.parentElement.style.position = 'relative';
-    panel.parentElement.style.position = 'relative';
-  }
+  document.getElementById('segPanel').style.display = 'block';
   document.getElementById('segSliders').style.display = 'block';
   document.getElementById('segForm').style.display = 'none';
 
@@ -637,9 +642,27 @@ function enterSegmentMode() {
   document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
 }
 
+function adjustSegStart(delta) {
+  var slider = document.getElementById('segStartSlider');
+  var newVal = parseInt(slider.value) + delta;
+  newVal = Math.max(0, Math.min(newVal, parseInt(slider.max)));
+  slider.value = newVal;
+  updateSegmentFromSliders();
+}
+
+function adjustSegEnd(delta) {
+  var slider = document.getElementById('segEndSlider');
+  var newVal = parseInt(slider.value) + delta;
+  newVal = Math.max(0, Math.min(newVal, parseInt(slider.max)));
+  slider.value = newVal;
+  updateSegmentFromSliders();
+}
+
 function showSegmentForm() {
   document.getElementById('segSliders').style.display = 'none';
   document.getElementById('segForm').style.display = 'block';
+  var nameInput = document.querySelector('#segForm input[name="name"]');
+  if (nameInput) nameInput.focus();
 }
 
 function cancelSegment() {
